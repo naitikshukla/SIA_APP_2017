@@ -169,4 +169,3 @@ def get_dimensions(image):
 	return w,h,b64
 	#cv2.imshow("Final",frame)
 	#cv2.waitKey(0)
-
