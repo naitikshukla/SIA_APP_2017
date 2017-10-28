@@ -7,14 +7,20 @@ Created on Tue Oct 24 20:58:50 2017
 
 # import the necessary packages
 from scipy.spatial import distance as dist
-#from imutils import perspective
-#from imutils import contours
-#import numpy as np
 import imutils
 import cv2
+import numpy as np
 
 def midpoint(ptA, ptB):
 	return ((ptA[0] + ptB[0]) * 0.5, (ptA[1] + ptB[1]) * 0.5)
+
+def edgedetect (channel):
+    sobelX = cv2.Sobel(channel, cv2.CV_16S, 1, 0)
+    sobelY = cv2.Sobel(channel, cv2.CV_16S, 0, 1)
+    sobel = np.hypot(sobelX, sobelY)
+
+    sobel[sobel > 255] = 255; # Some values seem to go above 255. However RGB channels has to be within 0-255
+    return sobel
 
 def ref_object(frame,width = .90):
 	greenLower = (29, 86, 6)
@@ -61,20 +67,27 @@ def ref_object(frame,width = .90):
 
 			cv2.putText(frame, "Reference",(center[0]+int(radius)-20,center[1]+int(radius)), cv2.FONT_HERSHEY_SIMPLEX,0.65, (255, 255,0) , 2)
 
+	#cv2.imshow("mask",frame)
+	#cv2.waitKey(0)
 	return pixelsPerMetric,frame
 
+
 def main_box(img,pixelsPerMetric):
-	#image = cv2.imread(image)
-	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-	gray = cv2.bilateralFilter(gray, 11, 17, 17)
-	edged = cv2.Canny(gray, 20, 200)
-	edged = cv2.dilate(edged, None, iterations=2)
-	edged = cv2.erode(edged, None, iterations=2)
+	blurred = cv2.GaussianBlur(img, (5, 5), 0) # Remove noise
+	edgeImg = np.max( np.array([ edgedetect(blurred[:,:, 0]), edgedetect(blurred[:,:, 1]), edgedetect(blurred[:,:, 2]) ]), axis=0 )
 
-	#cv2.imshow("Image", gray)
-	#cv2.waitKey(0)
 
-	cnts = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2]
+
+	edgeImg = cv2.dilate(edgeImg, None, iterations=2)
+	edgeImg = cv2.erode(edgeImg, None, iterations=2)
+
+	mean = np.mean(edgeImg);
+	# Zero any value that is less than mean. This reduces a lot of noise.
+	edgeImg[edgeImg <= mean] = 0;
+	edgeImg_8u = np.asarray(edgeImg, np.uint8)
+
+
+	cnts = cv2.findContours(edgeImg_8u.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2]
 	cnts = sorted(cnts, key = cv2.contourArea, reverse = True)[:5]
 	screenCnt = None
 
@@ -83,7 +96,7 @@ def main_box(img,pixelsPerMetric):
 		# approximate the contour
 		peri = cv2.arcLength(c, True)
 		approx = cv2.approxPolyDP(c, 0.05 * peri, True)
-		print(approx)
+		#print(approx)
 		# if our approximated contour has four points, then
 		# we can assume that we have found our screen
 		if len(approx) == 4:
@@ -92,6 +105,7 @@ def main_box(img,pixelsPerMetric):
 	pts = screenCnt.reshape(4, 2)
 	orig=img.copy()
 	cv2.drawContours(orig, [pts], -1, (0, 255, 0), 3)
+
 
 	# loop over the original points and draw them
 	for (x, y) in pts:
@@ -145,15 +159,27 @@ def main_box(img,pixelsPerMetric):
 
 	return orig,dimA,dimB
 
-if  __name__ == '__main__':
-	image = "E:\\Workspaces\\SIA_APP_2017\\Python\\ref2.jpg"
-	#image = "C:\\Users\\naitikshukla\\Downloads\\ref1.jpg"
-	width = 1.0
+def main1(image):
+	width = 1
 	image = cv2.imread(image)
-	image = imutils.resize(image, width=500)
+	image = imutils.resize(image, width=600)
 	pixelRatio,frame = ref_object(image,width)
-	print(pixelRatio)
+	#print("pixel Ratio=",pixelRatio)
 	frame,h,w = main_box(frame,pixelRatio)
-	print("width=",w,"height =",h)
+	#print("width=",w,"height =",h)
+	return w,h,frame
+	#cv2.imshow("Final",frame)
+	#cv2.waitKey(0)
+
+
+if  __name__ == '__main__':
+	images = "C:\\Users\\naitikshukla\\Downloads\\sia\\ref2.jpg"
+	#images = "C:\\Users\\naitikshukla\\Downloads\\images.jpg"
+	#image = cv2.imread(images)
+	width,height,frame = main1(images)
+	print(width,height)
 	cv2.imshow("Final",frame)
 	cv2.waitKey(0)
+
+	#cv2.imshow("Final",image)
+	#cv2.waitKey(0)

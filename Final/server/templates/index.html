@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'bernard_dashboard/css/index.css' %}">
+
+<div id="video-container">
+  <div class="video-overlay"></div>
+  <div class="video-content">
+    <div class="inner">
+      <h1>SENTIENCE BERNARD</h1>
+      <div class="button">
+       <div class="line-container">
+         <a href="/home" style="text-decoration:none;"><span class="index_page_butt_title">Activate</span></a>
+         <div class="line line--top-left line--thick thick-line--short"></div>
+         <div class="line line--top-right line--thick thick-line--short"></div>
+         <div class="line line--bottom-left line--thick thick-line--long"></div>
+         <div class="line line--bottom-right line--thick thick-line--long"></div>
+         <div class="line line--top line--thin"></div>
+         <div class="line line--bottom line--thin"></div>
+       </div>
+     </div>
+    </div>
+  </div>
+  <video autoplay loop src="{% static '/intro.mp4' %}" type="video/mp4"></video>
+</div>
+{% endblock %}
+
